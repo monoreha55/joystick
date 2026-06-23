@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>今仙ジョイスティック 被せ式キャップ ジェネレーター</title>
+<style>
+  :root{ --bg:#f4f6fb; --panel:#fff; --ink:#1c2433; --sub:#5b6577; --line:#e3e7f0; --accent:#3066ff; }
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%;font-family:-apple-system,"Hiragino Sans","Noto Sans JP",system-ui,sans-serif;color:var(--ink);background:var(--bg)}
+  .wrap{display:flex;height:100%;min-height:0}
+  .stage{position:relative;flex:1 1 auto;min-width:0}
+  #view{width:100%;height:100%;display:block;touch-action:none;cursor:grab}
+  #view:active{cursor:grabbing}
+  .badge{position:absolute;left:14px;top:12px;background:rgba(255,255,255,.88);backdrop-filter:blur(6px);border:1px solid var(--line);border-radius:12px;padding:10px 14px;font-size:12.5px;line-height:1.7}
+  .badge b{font-size:15px}
+  .hint{position:absolute;left:14px;bottom:12px;color:var(--sub);font-size:11.5px;background:rgba(255,255,255,.72);padding:5px 9px;border-radius:8px}
+  .panel{flex:0 0 330px;max-width:90vw;background:var(--panel);border-left:1px solid var(--line);overflow-y:auto;padding:16px 16px 28px}
+  h1{font-size:15px;margin:2px 0 2px}
+  .desc{color:var(--sub);font-size:11.5px;margin:0 0 12px;line-height:1.6}
+  .group{margin:16px 0 4px;font-size:11px;letter-spacing:.04em;color:var(--sub);text-transform:uppercase}
+  .row{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:9px 0}
+  .row label{font-size:13px;flex:0 0 auto}
+  .row .val{font-variant-numeric:tabular-nums;color:var(--accent);font-size:12.5px;min-width:42px;text-align:right}
+  input[type=range]{flex:1 1 auto;accent-color:var(--accent)}
+  select{width:100%;padding:8px;border:1px solid var(--line);border-radius:9px;font-size:13px;background:#fff}
+  .dim{display:flex;gap:14px;flex-wrap:wrap;margin-top:2px}
+  .dim div{font-size:11.5px;color:var(--sub)}
+  .dim b{display:block;color:var(--ink);font-size:16px;font-variant-numeric:tabular-nums}
+  .btns{display:flex;gap:8px;margin-top:16px}
+  button{flex:1;padding:11px;border:0;border-radius:10px;font-size:13.5px;font-weight:600;cursor:pointer}
+  #dl{background:var(--accent);color:#fff}
+  #reset{background:#eef1f7;color:var(--ink)}
+  .note{font-size:11px;color:var(--sub);margin-top:14px;line-height:1.6;border-top:1px solid var(--line);padding-top:10px}
+  .warn{font-size:11px;color:#8a4b00;background:#fff6e6;border:1px solid #ffe2ad;border-radius:8px;padding:8px 10px;margin-top:10px;line-height:1.6}
+  @media(max-width:780px){ .wrap{flex-direction:column} .panel{flex:0 0 auto;max-width:none;border-left:0;border-top:1px solid var(--line)} .stage{flex:1 1 52%} }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="stage">
+    <canvas id="view"></canvas>
+    <div class="badge">
+      <div class="dim">
+        <div>全高<b><span id="dimH">–</span><small> mm</small></b></div>
+        <div>最大径<b><span id="dimW">–</span><small> mm</small></b></div>
+        <div>ソケット内径<b><span id="dimSock">–</span><small> mm</small></b></div>
+        <div>かぶせ深さ<b><span id="dimDep">–</span><small> mm</small></b></div>
+      </div>
+    </div>
+    <div class="hint">ドラッグで回転 ・ ホイールで拡大縮小</div>
+  </div>
+  <div class="panel">
+    <h1>被せ式キャップ ジェネレーター</h1>
+    <p class="desc">今仙ジョイスティックのゴムノブに上から被せるキャップを生成します。ソケット（袋穴）でノブを掴み、先端で操作を補助します。</p>
+
+    <div class="group">先端の形状</div>
+    <select id="tipType">
+      <option value="dish">すり鉢（指当て・凹）</option>
+      <option value="tbar">T字バー（指先でつまむ）</option>
+      <option value="mushroom">キノコ（丸く張り出す）</option>
+      <option value="dome">ドーム（半球）</option>
+      <option value="rounded">棒（細い・丸先）</option>
+      <option value="disc">平たい（円盤）</option>
+      <option value="flat">フラット（平面）</option>
+    </select>
+
+    <div class="group">採寸（被せ式ソケット）</div>
+    <div class="row"><label>穴径（ソケット内径）</label><input id="sockDia" type="range" min="3" max="16" step="0.01" value="6.10"><span class="val"><span id="sockDia_v">6.10</span></span></div>
+    <div class="row"><label>はめあい（＋締め／−ひろげ）</label><input id="interf" type="range" min="-1" max="2" step="0.05" value="0"><span class="val"><span id="interf_v">0</span></span></div>
+    <div class="row"><label>穴の深さ（差し込み）</label><input id="sockDepth" type="range" min="4" max="24" step="0.01" value="13.66"><span class="val"><span id="sockDepth_v">13.66</span></span></div>
+    <div class="row"><label>壁厚</label><input id="wall" type="range" min="1" max="4" step="0.1" value="2.5"><span class="val"><span id="wall_v">2.5</span></span></div>
+    <div class="row"><label>天井厚（ソケット屋根）</label><input id="ceil" type="range" min="1.5" max="6" step="0.5" value="3"><span class="val"><span id="ceil_v">3</span></span></div>
+    <div class="row"><label>差し込み口の面取り</label><input id="chamfer" type="range" min="0" max="2" step="0.1" value="0.8"><span class="val"><span id="chamfer_v">0.8</span></span></div>
+
+    <div class="group">柄（土台〜先端の柱）</div>
+    <div class="row"><label>柄の長さ</label><input id="shaftLen" type="range" min="0" max="40" step="0.5" value="8"><span class="val"><span id="shaftLen_v">8</span></span></div>
+    <div class="row"><label>柄の径</label><input id="shaftDia" type="range" min="4" max="20" step="0.5" value="10"><span class="val"><span id="shaftDia_v">10</span></span></div>
+    <div class="row"><label>土台〜柄の段の丸み</label><input id="neck" type="range" min="0" max="6" step="0.5" value="1.5"><span class="val"><span id="neck_v">1.5</span></span></div>
+
+    <div class="group">先端の寸法</div>
+    <div class="row tip-dim"><label>径</label><input id="tipDia" type="range" min="6" max="40" step="0.5" value="18"><span class="val"><span id="tipDia_v">18</span></span></div>
+    <div class="row tip-dim"><label>高さ</label><input id="tipHeight" type="range" min="0" max="16" step="0.5" value="5"><span class="val"><span id="tipHeight_v">5</span></span></div>
+    <div class="row tip-dim"><label>縁・肩の丸み</label><input id="tipFillet" type="range" min="0" max="8" step="0.5" value="2"><span class="val"><span id="tipFillet_v">2</span></span></div>
+    <div class="row dishonly"><label>すり鉢の深さ</label><input id="dishDepth" type="range" min="0.5" max="5" step="0.1" value="2"><span class="val"><span id="dishDepth_v">2</span></span></div>
+    <div class="row dishonly"><label>すり鉢の縁の丸み</label><input id="rimFillet" type="range" min="0" max="5" step="0.25" value="1.5"><span class="val"><span id="rimFillet_v">1.5</span></span></div>
+
+    <div class="group tbaronly">T字バー</div>
+    <div class="row tbaronly"><label>バーの長さ</label><input id="barLen" type="range" min="20" max="80" step="1" value="50"><span class="val"><span id="barLen_v">50</span></span></div>
+    <div class="row tbaronly"><label>バーの径</label><input id="barDia" type="range" min="6" max="18" step="0.5" value="12"><span class="val"><span id="barDia_v">12</span></span></div>
+
+    <div class="btns">
+      <button id="dl">STLをダウンロード</button>
+      <button id="reset">リセット</button>
+    </div>
+    <p class="warn">車いす制御部品です。印刷後は必ず実機で、全方向のフルストロークと確実な中立復帰を妨げないこと、走行中に外れない保持を確認してください。寸法はすべてmm。ソケットは実測値（穴径6.10・深さ13.66mm）を初期値にしています。各スライダーは自由に調整できます。</p>
+    <p class="note">出力STLは回転体（ソケット＋柄＋先端）です。T字バーのみ横棒を重ねた一体データで、スライサーが結合します。ソケット内径＝穴径−はめあい。0で実測どおり、＋できつく、−でひろがります。印刷穴はやや小さく出るので、きつければ−0.2〜−0.4を目安に。</p>
+  </div>
+</div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+/* ===== parameters ===== */
+var P = {
+  tipType:'dish',
+  sockDia:6.10, interf:0, sockDepth:13.66, wall:2.5, ceil:3, chamfer:0.8,
+  shaftLen:8, shaftDia:10, neck:1.5,
+  tipDia:18, tipHeight:5, tipFillet:2, dishDepth:2, rimFillet:1.5,
+  barLen:50, barDia:12,
+  seg:120
+};
+
+/* ===== geometry helpers ===== */
+function arc(add,cx,cz,R,a0,a1,n){ for(var i=0;i<=n;i++){var a=a0+(a1-a0)*i/n; add(cx+R*Math.cos(a), cz+R*Math.sin(a));} }
+
+function heights(P){
+  var ri = Math.max((P.sockDia - P.interf)/2, 1.0);   // socket inner radius
+  var wall = P.wall, ro = ri + wall;                   // outer radius of socket housing
+  var hs = P.sockDepth, ct = P.ceil;
+  var baseTop = hs + ct;                               // top of housing / base of shaft
+  var sr = Math.max(P.shaftDia/2, 0.8);
+  var shaftTop = baseTop + Math.max(P.shaftLen,0);
+  return {ri:ri,wall:wall,ro:ro,hs:hs,ct:ct,baseTop:baseTop,sr:sr,shaftTop:shaftTop};
+}
+
+/* tip: push points from top apex DOWN to (sr, shaftTop) */
+function buildTip(P,add,sr,st){
+  var type=P.tipType, tr=Math.max(P.tipDia/2,0.8), th=Math.max(P.tipHeight,0), tf=Math.max(P.tipFillet,0);
+  if(type==='tbar' || type==='flat'){ add(0,st); add(sr,st); return; }
+  if(type==='dome' || type==='rounded'){
+    arc(add,0,st,sr,Math.PI/2,0,20);          // hemispherical cap, radius = shaft
+    return;
+  }
+  if(type==='mushroom'){
+    var zA=st+Math.max(th,2), capH=Math.max(th*0.7,1.5);
+    for(var i=0;i<=18;i++){var t=i/18; add(tr*Math.sin(t*Math.PI/2), zA-capH*(1-Math.cos(t*Math.PI/2)));} // (0,zA)->(tr,zA-capH)
+    add(tr, st+Math.min(tf,th));              // outer side down
+    add(sr, st);                              // underside to shaft
+    return;
+  }
+  if(type==='disc'){
+    var zT=st+Math.max(th,2);
+    var eR=Math.min(tf,(zT-st)*0.9,tr*0.35); if(eR<0.3)eR=0.3;
+    add(0,zT); add(tr-eR,zT);
+    arc(add, tr-eR, zT-eR, eR, Math.PI/2, 0, 8);   // rounded top edge -> (tr, zT-eR)
+    add(tr, st+Math.min(tf,th)); add(sr,st);
+    return;
+  }
+  // dish (mortar)
+  var zR=st+Math.max(th,2);
+  var dd=Math.max(P.dishDepth,0.3);
+  var rf=Math.max(P.rimFillet,0); rf=Math.min(rf, Math.max(zR-st-0.2,0), tr-1.0);
+  var dishR=Math.max(tr-rf,0.6);
+  add(0, zR-dd);
+  for(var k=1;k<=24;k++){var r=dishR*(k/24); add(r, zR-dd*(1-(r/dishR)*(r/dishR)));} // concave dish -> (dishR,zR)
+  if(rf>0.05) arc(add, dishR, zR-rf, rf, Math.PI/2, 0, 8); else add(tr,zR); // convex rim -> (dishR+rf, zR-rf)
+  add(tr, st+Math.min(tf,th));
+  add(sr, st);
+}
+
+/* full closed profile: top apex -> outside down -> bottom -> cavity -> ceiling apex */
+function profile(P){
+  var H=heights(P), pts=[];
+  function add(r,z){ pts.push([Math.max(r,0), z]); }
+  buildTip(P, add, H.sr, H.shaftTop);                 // apex .. (sr, shaftTop)
+  if(P.shaftLen>0.05) add(H.sr, H.baseTop + Math.min(P.neck, P.shaftLen)); // shaft straight down
+  add(H.ro, H.baseTop);                               // shoulder to housing
+  add(H.ro, 0);                                       // outer wall down to mouth plane
+  var ch=Math.min(P.chamfer, H.wall*0.8, H.hs*0.5);
+  add(H.ri+ch, 0);                                    // bottom face inward
+  add(H.ri, ch);                                      // lead-in chamfer
+  add(H.ri, H.hs);                                    // cavity wall up
+  add(0, H.hs);                                       // ceiling inward to axis
+  return {pts:pts, H:H};
+}
+
+/* lathe around Z -> triangle soup (Float32Array) */
+function latheZ(pts, seg){
+  var t=[];
+  function tri(ax,ay,az,bx,by,bz,cx,cy,cz){ t.push(ax,ay,az,bx,by,bz,cx,cy,cz); }
+  for(var i=0;i<seg;i++){
+    var a0=2*Math.PI*i/seg, a1=2*Math.PI*(i+1)/seg;
+    var c0=Math.cos(a0),s0=Math.sin(a0),c1=Math.cos(a1),s1=Math.sin(a1);
+    for(var j=0;j<pts.length-1;j++){
+      var p=pts[j], q=pts[j+1];
+      if(p[0]<1e-6 && q[0]<1e-6) continue;            // axis segment, skip
+      var Ax=p[0]*c0,Ay=p[0]*s0,Az=p[1];
+      var Bx=q[0]*c0,By=q[0]*s0,Bz=q[1];
+      var Cx=q[0]*c1,Cy=q[0]*s1,Cz=q[1];
+      var Dx=p[0]*c1,Dy=p[0]*s1,Dz=p[1];
+      tri(Ax,Ay,Az, Bx,By,Bz, Cx,Cy,Cz);
+      tri(Ax,Ay,Az, Cx,Cy,Cz, Dx,Dy,Dz);
+    }
+  }
+  return new Float32Array(t);
+}
+
+function geoSoup(g){ var p=g.toNonIndexed().attributes.position.array; return p; }
+
+function crossbar(P, zbar){
+  var rb=P.barDia/2, L=P.barLen, out=[];
+  function push(g){ var p=geoSoup(g); for(var k=0;k<p.length;k++) out.push(p[k]); }
+  var cyl=new THREE.CylinderGeometry(rb,rb,L,28,1,false); cyl.rotateZ(Math.PI/2); cyl.translate(0,0,zbar); push(cyl);
+  var s1=new THREE.SphereGeometry(rb,20,14); s1.translate(L/2,0,zbar); push(s1);
+  var s2=new THREE.SphereGeometry(rb,20,14); s2.translate(-L/2,0,zbar); push(s2);
+  return new Float32Array(out);
+}
+
+function buildSoup(P){
+  var pr=profile(P);
+  var soup=latheZ(pr.pts, P.seg);
+  if(P.tipType==='tbar'){
+    var cb=crossbar(P, pr.H.shaftTop);
+    var m=new Float32Array(soup.length+cb.length); m.set(soup,0); m.set(cb,soup.length); soup=m;
+  }
+  // extents
+  var maxR=0, maxZ=0;
+  for(var i=0;i<pr.pts.length;i++){ if(pr.pts[i][0]>maxR)maxR=pr.pts[i][0]; if(pr.pts[i][1]>maxZ)maxZ=pr.pts[i][1]; }
+  if(P.tipType==='tbar') maxR=Math.max(maxR, P.barLen/2);
+  return {soup:soup, H:pr.H, maxR:maxR, maxZ:maxZ};
+}
+
+/* binary STL */
+function buildSTL(soup){
+  var nt=soup.length/9, buf=new ArrayBuffer(84+nt*50), dv=new DataView(buf);
+  dv.setUint32(80, nt, true); var off=84;
+  for(var k=0;k<nt;k++){
+    var i=k*9;
+    var ax=soup[i],ay=soup[i+1],az=soup[i+2], bx=soup[i+3],by=soup[i+4],bz=soup[i+5], cx=soup[i+6],cy=soup[i+7],cz=soup[i+8];
+    var ux=bx-ax,uy=by-ay,uz=bz-az, vx=cx-ax,vy=cy-ay,vz=cz-az;
+    var nx=uy*vz-uz*vy, ny=uz*vx-ux*vz, nz=ux*vy-uy*vx;
+    var L=Math.hypot(nx,ny,nz)||1; nx/=L;ny/=L;nz/=L;
+    dv.setFloat32(off,nx,true);dv.setFloat32(off+4,ny,true);dv.setFloat32(off+8,nz,true);
+    dv.setFloat32(off+12,ax,true);dv.setFloat32(off+16,ay,true);dv.setFloat32(off+20,az,true);
+    dv.setFloat32(off+24,bx,true);dv.setFloat32(off+28,by,true);dv.setFloat32(off+32,bz,true);
+    dv.setFloat32(off+36,cx,true);dv.setFloat32(off+40,cy,true);dv.setFloat32(off+44,cz,true);
+    dv.setUint16(off+48,0,true); off+=50;
+  }
+  return buf;
+}
+
+/* ===== three.js scene (Z-up) ===== */
+var canvas=document.getElementById('view');
+var renderer=new THREE.WebGLRenderer({canvas:canvas,antialias:true,alpha:true});
+renderer.setPixelRatio(Math.min(window.devicePixelRatio,2));
+var scene=new THREE.Scene();
+var camera=new THREE.PerspectiveCamera(38,1,0.1,3000); camera.up.set(0,0,1);
+scene.add(new THREE.AmbientLight(0xffffff,0.62));
+var d1=new THREE.DirectionalLight(0xffffff,0.85); d1.position.set(25,30,45); scene.add(d1);
+var d2=new THREE.DirectionalLight(0xffffff,0.30); d2.position.set(-30,-25,15); scene.add(d2);
+var d3=new THREE.DirectionalLight(0xffffff,0.22); d3.position.set(10,-20,-10); scene.add(d3);
+var mat=new THREE.MeshStandardMaterial({color:0x3566ef,metalness:0.16,roughness:0.5,side:THREE.DoubleSide});
+var mesh=null;
+
+var target=new THREE.Vector3(0,0,12);
+var az=0.7,pol=1.15,rad=70;
+function updateCam(){
+  camera.position.set(target.x+rad*Math.sin(pol)*Math.cos(az), target.y+rad*Math.sin(pol)*Math.sin(az), target.z+rad*Math.cos(pol));
+  camera.lookAt(target);
+}
+var drag=false,lx=0,ly=0;
+canvas.addEventListener('pointerdown',function(e){drag=true;lx=e.clientX;ly=e.clientY;canvas.setPointerCapture(e.pointerId);});
+canvas.addEventListener('pointermove',function(e){if(!drag)return;var dx=e.clientX-lx,dy=e.clientY-ly;lx=e.clientX;ly=e.clientY;az-=dx*0.01;pol=Math.min(2.95,Math.max(0.15,pol-dy*0.01));});
+canvas.addEventListener('pointerup',function(){drag=false;});
+canvas.addEventListener('wheel',function(e){e.preventDefault();rad=Math.min(220,Math.max(26,rad*(1+e.deltaY*0.0012)));},{passive:false});
+function resize(){var w=canvas.clientWidth,h=canvas.clientHeight;if(canvas.width!==w||canvas.height!==h){renderer.setSize(w,h,false);camera.aspect=w/h;camera.updateProjectionMatrix();}}
+function loop(){resize();updateCam();renderer.render(scene,camera);requestAnimationFrame(loop);}
+
+var lastSoup=null;
+function rebuild(){
+  var b=buildSoup(P); lastSoup=b.soup;
+  if(mesh){ scene.remove(mesh); mesh.geometry.dispose(); }
+  var g=new THREE.BufferGeometry(); g.setAttribute('position', new THREE.BufferAttribute(b.soup,3)); g.computeVertexNormals();
+  mesh=new THREE.Mesh(g,mat); scene.add(mesh);
+  target.set(0,0,b.maxZ*0.5);
+  document.getElementById('dimH').textContent=b.maxZ.toFixed(1);
+  document.getElementById('dimW').textContent=(b.maxR*2).toFixed(1);
+  document.getElementById('dimSock').textContent=(b.H.ri*2).toFixed(1);
+  document.getElementById('dimDep').textContent=b.H.hs.toFixed(1);
+}
+
+/* ===== UI ===== */
+function bind(id,key,fn){
+  var el=document.getElementById(id), out=document.getElementById(id+'_v');
+  el.addEventListener('input',function(){ var v=parseFloat(el.value); if(fn)v=fn(v); P[key]=v; if(out)out.textContent=el.value; rebuild(); });
+}
+function toggleGroups(){
+  var isDish=P.tipType==='dish', isBar=P.tipType==='tbar';
+  document.querySelectorAll('.dishonly').forEach(function(r){r.style.display=isDish?'':'none';});
+  document.querySelectorAll('.tbaronly').forEach(function(r){r.style.display=isBar?'':'none';});
+  document.querySelectorAll('.tip-dim').forEach(function(r){r.style.display=isBar?'none':'';});
+}
+document.getElementById('tipType').addEventListener('change',function(e){ P.tipType=e.target.value; toggleGroups(); rebuild(); });
+bind('sockDia','sockDia'); bind('interf','interf'); bind('sockDepth','sockDepth'); bind('wall','wall'); bind('ceil','ceil'); bind('chamfer','chamfer');
+bind('shaftLen','shaftLen'); bind('shaftDia','shaftDia'); bind('neck','neck');
+bind('tipDia','tipDia'); bind('tipHeight','tipHeight'); bind('tipFillet','tipFillet'); bind('dishDepth','dishDepth'); bind('rimFillet','rimFillet');
+bind('barLen','barLen'); bind('barDia','barDia');
+
+document.getElementById('dl').addEventListener('click',function(){
+  var buf=buildSTL(lastSoup); var blob=new Blob([buf],{type:'model/stl'});
+  var url=URL.createObjectURL(blob), a=document.createElement('a');
+  a.href=url; a.download='imasen_cap_'+P.tipType+'_sock'+(P.sockDia-P.interf).toFixed(1)+'_dep'+P.sockDepth+'.stl';
+  document.body.appendChild(a); a.click(); a.remove(); setTimeout(function(){URL.revokeObjectURL(url);},1500);
+});
+document.getElementById('reset').addEventListener('click',function(){location.reload();});
+
+toggleGroups(); rebuild(); loop();
+</script>
+</body>
+</html>
